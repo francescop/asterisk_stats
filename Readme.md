@@ -1,23 +1,27 @@
-retrieve stats from asterisk cdr database
+#retrieve stats from asterisk cdr database
 
-installation instruction for ubuntu 12.04:
+##installation instruction for ubuntu 12.04:
 
-----
+`# apt-get install asterisk asterisk-mysql mysql-server`
 
-# apt-get install asterisk asterisk-mysql mysql-server
-# nano /etc/asterisk/modules.conf
+`# nano /etc/asterisk/modules.conf`
 
+```
 [global]
 load => cdr_addon_mysql.so
+```
 
-# nano /etc/asterisk/cdr.conf
+`# nano /etc/asterisk/cdr.conf`
 
+```
 [mysql_connection]
 connection=asterisk_mysql
 table=cdr
+```
 
-# nano /etc/asterisk/cdr_mysql.conf
+`# nano /etc/asterisk/cdr_mysql.conf`
 
+```
 [global]
 hostname=localhost
 dbname=asteriskcdrdb
@@ -27,9 +31,11 @@ user=__USER__
 ;port=3306
 sock=/var/run/mysqld/mysqld.sock
 timezone=UTC ; Previously called usegmtime
+```
 
-# mysql -u root -p
+`# mysql -u root -p`
 
+```sql
 CREATE database asteriskcdrdb;
 
 USE asteriskcdrdb;
@@ -56,11 +62,11 @@ CREATE TABLE cdrs (
         linkedid varchar(32) NOT NULL default '',
         sequence int(11) NOT NULL default '0'
 );
+```
+`# service asterisk restart`
+`# asterisk -rvvvvvvvvvvvvvv`
 
-
-# asterisk -rvvvvvvvvvvvvvv
-
+```
 cdr show status
 module show like mysql
-
-----
+```
