@@ -36,15 +36,17 @@ end
 DataMapper.finalize
 
 class Stat
-  attr_accessor :src, :outbound_count, :outbound_total, :outbound_avg, :inbound_count, :inbound_total
+  attr_accessor :src, :outbound_count, :outbound_total, :outbound_avg, :inbound_count, :inbound_total, :useful_calls, :unnecessary_calls
 
-  def initialize(src, outbound_count = 0, outbound_total = 0, inbound_count = 0, inbound_total = 0)
+  def initialize(src, outbound_count = 0, outbound_total = 0, inbound_count = 0, inbound_total = 0, useful_calls = 0, unnecessary_calls = 0)
     self.src = src
     self.outbound_count = outbound_count
     self.outbound_total = outbound_total
     self.outbound_avg = outbound_total / outbound_count if outbound_total
     self.inbound_count = inbound_count
     self.inbound_total = inbound_total
+    self.useful_calls = useful_calls
+    self.unnecessary_calls = unnecessary_calls
   end
 end
 
@@ -65,17 +67,23 @@ get '/:ext/?:start?/?:end_time?' do
     outbound_count = Cdr.count(src: ext, calldate: (start..end_time))
     inbound_total = Cdr.sum(:billsec, dst: ext, calldate: (start..end_time))
     inbound_count = Cdr.count(dst: ext, calldate: (start..end_time))
+    useful_calls = Cdr.count(:billsec.gt => 30, calldate: (start..end_time))
+    unnecessary_calls = Cdr.count(:billsec.lt => 30, calldate: (start..end_time))
   else
     outbound_total = Cdr.sum(:billsec, src: ext)
     outbound_count = Cdr.count(src: ext)
     inbound_total = Cdr.sum(:billsec, dst: ext)
     inbound_count = Cdr.count(dst: ext)
+    useful_calls = Cdr.count(:billsec.gt => 30)
+    unnecessary_calls = Cdr.count(:billsec.lt => 30)
   end
-  stat = Stat.new(ext, outbound_count, outbound_total, inbound_count, inbound_total)
+  stat = Stat.new(ext, outbound_count, outbound_total, inbound_count, inbound_total, useful_calls, unnecessary_calls)
 
   { src: stat.src,
     outbound_count: stat.outbound_count,
     outbound_total: stat.outbound_total,
     inbound_count: stat.inbound_count,
-    inbound_total: stat.inbound_total }.to_json
+    inbound_total: stat.inbound_total,
+    useful_calls: stat.useful_calls,
+    unnecessary_calls: stat.unnecessary_calls }.to_json
 end
