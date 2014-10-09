@@ -1,15 +1,23 @@
 require 'sinatra'
 require 'data_mapper'
 require 'json'
+require 'net/telnet'
 
 db_user = ENV['asterisk_stats_db_user']
 db_pass = ENV['asterisk_stats_db_pass']
 db_host = 'localhost'
 db_name = 'asteriskcdrdb'
+
+ami_host = 'localhost'
+ami_user = 'mark'
+ami_pass = '123456'
+
 DataMapper.setup(:default, "mysql://#{db_user}:#{db_pass}@#{db_host}/#{db_name}")
 
 class Cdr
   include DataMapper::Resource
+	
+  storage_names[:default] = 'cdr'
 
   property :id,         Serial
   property :calldate, DateTime
@@ -86,4 +94,35 @@ get '/:ext/?:start?/?:end_time?' do
     inbound_total: stat.inbound_total,
     useful_calls: stat.useful_calls,
     unnecessary_calls: stat.unnecessary_calls }.to_json
+end
+
+get '/call/:extension/:destination' do
+  host = Net::Telnet::new("Host" => ami_host,
+                          "Telnetmode" => false,
+                          "Port" => 5038,
+                          "Output_log" => "output_log", # default: nil (no output)
+                          "Dump_log"   => "dump_log",   # default: nil (no output)
+                          )
+
+  host.puts login(ami_user, ami_pass)
+  host.puts call(params[:extension],params[:destination])
+  host.close
+end
+
+
+
+private
+def login(username,password)
+  request = "Action: login\n"
+  request += "Username: #{username}\n"
+  request += "Secret: #{password}\n"
+end
+
+def call(extension,destination)
+  request = "Action: originate\n"
+  request += "Channel: SIP/#{extension}\n"
+  request += "CallerId: #{extension}\n"
+  request += "Exten: #{destination}\n"
+  request += "Context: from-internal\n"
+  request += "Priority: 1\n"
 end
